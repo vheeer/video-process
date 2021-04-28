@@ -43,7 +43,6 @@ def main():
                 filePath = os.path.join(path,filename)
                 os.rename(filePath,filePath.replace('(tmp)',''))
             # print(file)
-    return
 
     while 1:
         try:
