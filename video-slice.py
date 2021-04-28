@@ -36,7 +36,15 @@ def main():
     videoDir = "/tmp/youtube-video"
     # 生成输出文件夹
     if not os.path.exists('./chunks'):os.mkdir('./chunks')
-   
+    # 整理上次中断后的临时文件
+    for path,d,filelist in os.walk(videoDir):
+        for filename in filelist:
+            if (re.match('^\(tmp\).*\.mp4',filename)):
+                filePath = os.path.join(path,filename)
+                os.rename(filePath,filePath.replace('(tmp)',''))
+            # print(file)
+    return
+
     while 1:
         try:
             # 读视频文件夹
