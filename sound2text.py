@@ -32,7 +32,11 @@ def main():
 
     #2、创建游标，用于操作表
     cursor = connect.cursor()
-    cursor.execute("UPDATE video SET content = 'sssssssss' WHERE video_id = 'YPHcGZt4RoM';")
+    video_text='laejfoi;aehjg;aihgvja;iehgale;igh;lieghaelighaelgiha;oiegh;aiehg;aieohg;aeihg;aesgh'
+    video='OKjEHhuc_x8'
+    # cursor.execute("UPDATE video SET content = 'sssssssss' WHERE video_id = 'YPHcGZt4RoM';")
+    cursor.execute("UPDATE video SET content = '%s' WHERE video_id = '%s';"%(video_text, video))
+    # connect.commit()
     connect.commit()
     return
                     
