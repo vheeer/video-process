@@ -7,6 +7,7 @@ import re
 import subprocess
 from aip import AipSpeech
 import pymysql
+import threading
 
 APP_ID = '24032991'
 API_KEY = '5SYyz0GupHEGv8hxZc82aoXr'
@@ -35,6 +36,7 @@ def main():
     videoDir = "/tmp/youtube-video"
     # 生成输出文件夹
     if not os.path.exists('./chunks'):os.mkdir('./chunks')
+   
     while 1:
         try:
             # 读视频文件夹
@@ -42,7 +44,7 @@ def main():
             while len(pathDir)>0:
                 channel = pathDir.pop()
                 if not os.path.isdir(videoDir + '/' + channel):continue
-                print('---------------------开始处理频道' + channel + '||||||||||||||||||||||||---------------------')
+                print('进入' + channel + '频道查找：--------->>>>>>>')
                 # 生成二级输出文件夹
                 if not os.path.exists('./chunks/'+channel):os.mkdir('./chunks/'+channel)
                 videos = os.listdir(videoDir + '/' + channel)
@@ -50,65 +52,84 @@ def main():
                     video = videos.pop()
                     if '.mp4.tmp' in video:continue
                     if '.DS_Store' in video:continue
-                    print('---------------------开始处理视频' + video + '||||||||||||---------------------')
-                    # 载入
-                    name = '/tmp/youtube-video/' + channel + '/' + video
-                    sound = AudioSegment.from_file(name, "mp4")
-                    #sound = sound[:3*60*1000] # 如果文件较大，先取前3分钟测试，根据测试结果，调整参数
-                    
-                    # 设置参数
-                    silence_thresh=-70      # 小于-70dBFS以下的为静默
-                    min_silence_len=700     # 静默超过700毫秒则拆分
-                    length_limit=60*1000    # 拆分后每段不得超过1分钟
-                    abandon_chunk_len=500   # 放弃小于500毫秒的段
-                    joint_silence_len=500  # 段拼接时加入1300毫秒间隔用于断句
-                    
-                    # 将录音文件拆分成适合百度语音识别的大小
-                    chuck_paths = prepare_for_baiduaip(name,sound,channel,silence_thresh,min_silence_len,length_limit,abandon_chunk_len,joint_silence_len)
+                    if '(tmp)' in video:continue
+                    while True:
+                        thread_count = len(threading.enumerate())
+                        if(thread_count < 5):
+                            print('当前进程数：%d 将添加一个进程……'%(thread_count))
+                            # 载入
+                            pre_name = '/tmp/youtube-video/' + channel + '/' + video
+                            after_name = '/tmp/youtube-video/' + channel + '/(tmp)' + video
+                            # 改名防重读
+                            os.rename(pre_name, after_name)
+                            
+                            thread = threading.Thread(target=read_video, args=('(tmp)' + video,channel,))
+                            thread.start()
 
-                    # 视频文本
-                    video_text = ''
-                    for chuck_path in chuck_paths:
+                            break
+                        time.sleep(5)
 
-                        chuck_path_origin = chuck_path
-                        chuck_path_conv = chuck_path.split('.')[0] + '.pcm'
-
-                        subprocess.run('ffmpeg -y -i "%s" -acodec pcm_s16le -f s16le -ac 1 -ar 16000 "%s" '%(chuck_path_origin, chuck_path_conv), shell=True)
-                        
-                        client = AipSpeech(APP_ID, API_KEY, SECRET_KEY)
-                        # 识别本地文件
-                        result = client.asr(get_file_content(chuck_path_conv), 'pcm', 16000, {
-                            'dev_pid': 1537,
-                        })
-                        video_text += '   '.join(result['result'])
-                    
-                    print(video_text)
-
-                    #记录结果
-                    cursor.execute("UPDATE video SET content = '%s' WHERE video_id = '%s';"%(video_text, video.split('.')[0]))
-                    connect.commit()
-                    #删除掉原视频
-                    os.remove(name)
-                    print("删除视频：" + name)
-                    #删除音频片段
-                    for chuck_path in chuck_paths:
-                        print(chuck_path)
-                        mp4_chuck = chuck_path.replace('./', '').split('.')[0] + '.mp4'
-                        pcm_chuck = chuck_path.replace('./', '').split('.')[0] + '.pcm'
-                        try:
-                            os.remove(mp4_chuck)
-                            os.remove(pcm_chuck)
-                        except Exception as e:
-                            pass
-
-                        print("删除" + mp4_chuck + ' 及其pcm临时文件')
-            print("处理完毕")
+            print("--完成--")
         except Exception as e:
             print("出现异常")
             print(e)
         
         time.sleep(5)
+    
 
+def read_video(video, channel):
+    print('处理视频' + video + '----->>>>')
+    # 载入
+    name = '/tmp/youtube-video/' + channel + '/' + video
+    sound = AudioSegment.from_file(name, "mp4")
+    #sound = sound[:3*60*1000] # 如果文件较大，先取前3分钟测试，根据测试结果，调整参数
+    
+    # 设置参数
+    silence_thresh=-70      # 小于-70dBFS以下的为静默
+    min_silence_len=700     # 静默超过700毫秒则拆分
+    length_limit=60*1000    # 拆分后每段不得超过1分钟
+    abandon_chunk_len=500   # 放弃小于500毫秒的段
+    joint_silence_len=500  # 段拼接时加入1300毫秒间隔用于断句
+    
+    # 将录音文件拆分成适合百度语音识别的大小
+    chuck_paths = prepare_for_baiduaip(name,sound,channel,silence_thresh,min_silence_len,length_limit,abandon_chunk_len,joint_silence_len)
+
+    # 视频文本
+    video_text = ''
+    for chuck_path in chuck_paths:
+
+        chuck_path_origin = chuck_path
+        chuck_path_conv = chuck_path.split('.')[0] + '.pcm'
+
+        subprocess.run('ffmpeg -y -i "%s" -acodec pcm_s16le -f s16le -ac 1 -ar 16000 "%s" '%(chuck_path_origin, chuck_path_conv), shell=True)
+        
+        client = AipSpeech(APP_ID, API_KEY, SECRET_KEY)
+        # 识别本地文件
+        result = client.asr(get_file_content(chuck_path_conv), 'pcm', 16000, {
+            'dev_pid': 1537,
+        })
+        video_text += '   '.join(result['result'])
+    
+    print(video_text)
+
+    #记录结果
+    cursor.execute("UPDATE video SET content = '%s' WHERE video_id = '%s';"%(video_text, video.split('.')[0]))
+    connect.commit()
+    #删除掉原视频
+    os.remove(name)
+    print("删除视频：" + name)
+    #删除音频片段
+    for chuck_path in chuck_paths:
+        mp4_chuck = chuck_path.replace('./', '').split('.')[0] + '.mp4'
+        pcm_chuck = chuck_path.replace('./', '').split('.')[0] + '.pcm'
+        try:
+            os.remove(mp4_chuck)
+            os.remove(pcm_chuck)
+        except Exception as e:
+            pass
+
+        print("删除" + mp4_chuck + ' 及其pcm临时文件')
+ 
 
 def prepare_for_baiduaip(name,sound,channel,silence_thresh=-70,min_silence_len=700,length_limit=60*1000,abandon_chunk_len=500,joint_silence_len=1300):
     '''
