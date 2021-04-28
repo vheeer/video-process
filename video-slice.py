@@ -120,7 +120,7 @@ def read_video(video, channel):
     print(video_text)
 
     #记录结果
-    cursor.execute("UPDATE video SET content = '%s' WHERE video_id = '%s';"%(video_text, video.split('.')[0]))
+    cursor.execute("UPDATE video SET content = '%s' WHERE video_id = '%s';"%(video_text, video.replace('(tmp)','').split('.')[0]))
     connect.commit()
     #删除掉原视频
     os.remove(name)
