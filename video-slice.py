@@ -62,7 +62,7 @@ def main():
                     if '(tmp)' in video:continue
                     while True:
                         thread_count = len(threading.enumerate())
-                        if(thread_count < 5):
+                        if(thread_count < 3):
                             print('当前进程数：%d 将添加一个进程……'%(thread_count))
                             # 载入
                             pre_name = '/tmp/youtube-video/' + channel + '/' + video
@@ -136,7 +136,7 @@ def read_video(video, channel):
             pass
 
         print("删除" + mp4_chuck + ' 及其pcm临时文件')
- 
+
 
 def prepare_for_baiduaip(name,sound,channel,silence_thresh=-70,min_silence_len=700,length_limit=60*1000,abandon_chunk_len=500,joint_silence_len=1300):
     '''
@@ -214,23 +214,28 @@ def chunk_split_length_limit(chunk,min_silence_len=700,length_limit=60*1000,sile
             done_chunks.append(temp_chunk)
         else:
             # 超长的，准备处理
-            # 配置参数
-            if temp_msl>100: # 优先缩小静默判断时常
-                temp_msl-=100
-            if temp_st<-10: # 提升认为是静默的分贝数
-                temp_st+=10
             if temp_msl<=100 and temp_st>=-10:
                 # 提升到极致还是不行的，输出异常
                 tempname = 'temp_%d.wav'%int(time.time())
                 chunk.export(tempname, format='wav')
                 print('万策尽。音长%d,静长%d分贝%d依旧超长,片段已保存至%s'%(len(temp_chunk),temp_msl,temp_st,tempname))
                 raise Exception
+            # 配置参数
+            if temp_msl>100: # 优先缩小静默判断时常
+                temp_msl-=100
+            if temp_st<-10: # 提升认为是静默的分贝数
+                temp_st+=10
             # 输出本次执行的拆分，所使用的参数
             localtime = time.asctime( time.localtime(time.time()) )
             msg = '开始拆分…… 音长,剩余,已添加[静长,分贝]:%d,%d,%d[%d,%d] 时间： %s'%(len(temp_chunk),len(todo_arr),len(done_chunks),temp_msl,temp_st,localtime)
             print(msg)
             # 拆分
             temp_chunks = split_on_silence(temp_chunk,min_silence_len=temp_msl,silence_thresh=temp_st)
+            # 结束时间
+            localtime = time.asctime( time.localtime(time.time()) )
+            msg = '拆分完成…… 音长,剩余,已添加[静长,分贝]:%d,%d,%d[%d,%d] 时间： %s'%(len(temp_chunk),len(todo_arr),len(done_chunks),temp_msl,temp_st,localtime)
+            print(msg)
+            
             # 拆分结果处理
             doning_arr = [[c,temp_msl,temp_st] for c in temp_chunks]
             todo_arr = doning_arr+todo_arr
