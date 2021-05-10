@@ -115,7 +115,11 @@ def read_video(video, channel):
         result = client.asr(get_file_content(chuck_path_conv), 'pcm', 16000, {
             'dev_pid': 1537,
         })
-        video_text += '   '.join(result['result'])
+        if "result" in result:
+            video_text += '   '.join(result['result'])
+        else:
+            msg = '百度语音识别失败，err_no=%s, err_msg=%s, sn=%s '%(result['err_no'],result['err_msg'],result['sn'])
+            raise Exception(print(msg))
     
     print(video_text)
 
