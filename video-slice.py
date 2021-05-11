@@ -94,7 +94,7 @@ def read_video(video, channel):
     # 设置参数
     silence_thresh=-70      # 小于-70dBFS以下的为静默
     min_silence_len=700     # 静默超过700毫秒则拆分
-    length_limit=60*1000    # 拆分后每段不得超过1分钟
+    length_limit=59*1000    # 拆分后每段不得超过1分钟
     abandon_chunk_len=500   # 放弃小于500毫秒的段
     joint_silence_len=500  # 段拼接时加入1300毫秒间隔用于断句
     
@@ -142,7 +142,7 @@ def read_video(video, channel):
         print("删除" + mp4_chuck + ' 及其pcm临时文件')
 
 
-def prepare_for_baiduaip(name,sound,channel,silence_thresh=-70,min_silence_len=700,length_limit=60*1000,abandon_chunk_len=500,joint_silence_len=1300):
+def prepare_for_baiduaip(name,sound,channel,silence_thresh=-70,min_silence_len=700,length_limit=59*1000,abandon_chunk_len=500,joint_silence_len=1300):
     '''
     将录音文件拆分成适合百度语音识别的大小
     百度目前免费提供1分钟长度的语音识别。
@@ -195,7 +195,7 @@ def prepare_for_baiduaip(name,sound,channel,silence_thresh=-70,min_silence_len=7
     return chuck_paths
 
 
-def chunk_split_length_limit(chunk,min_silence_len=700,length_limit=60*1000,silence_thresh=-70):
+def chunk_split_length_limit(chunk,min_silence_len=700,length_limit=59*1000,silence_thresh=-70):
     '''
     将声音文件按正常语句停顿拆分，并限定单句最长时间，返回结果为列表形式
     Args:
@@ -247,7 +247,7 @@ def chunk_split_length_limit(chunk,min_silence_len=700,length_limit=60*1000,sile
     return done_chunks
 
 
-def chunk_join_length_limit(chunks,joint_silence_len=700,length_limit=60*1000):
+def chunk_join_length_limit(chunks,joint_silence_len=700,length_limit=59*1000):
     '''
     将声音文件合并，并限定单句最长时间，返回结果为列表形式
     Args:
